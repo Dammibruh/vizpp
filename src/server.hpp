@@ -1,8 +1,5 @@
 #include <dammi/logger.hpp>
-<<<<<<< HEAD
 #include <ixwebsocket/IXWebSocketServer.h>
-=======
->>>>>>> 0d7e868023a5f73be9780acec5a8930c80c5c368
 #include <nlohmann/json.hpp>
 #include <vector>
 
@@ -25,25 +22,19 @@ class Server {
   std::vector<User> users;
 
 public:
-  Server(unsigned int port) : port(port) {}
+  Server(unsigned int port = 2000) : port(port) {}
   void initServer() {
     ix::WebSocketServer ws_server(this->port);
     auto ws_handler = [&](std::shared_ptr<ix::ConnectionState> conn,
                           ix::WebSocket &ws,
                           const ix::WebSocketMessagePtr &msg) {
-      std::string_view username;
-      int id;
       switch (msg->type) {
       case ix::WebSocketMessageType::Open: {
         this->logged_in_count++;
-        if (username.empty()) {
-          username = msg->openInfo.headers["username"];
-        }
         for (auto &&client : ws_server.getClients()) {
-          client->sendBinary(fmt::format("{} has joined", username));
+          client->sendBinary(fmt::format("{} has joined",msg->openInfo.headers["username"]));
         };
-        id = std::stoi(conn->getId());
-        this->users.push_back(User{.name = username, .id = id});
+        this->users.push_back(User{.name = msg->openInfo.headers["username"], .id = std::stoi(conn->getId())});
         this->serv_logger.info("new connection etablished\n");
         this->serv_logger.info("user logged in now are " +
                                std::to_string(this->logged_in_count) +
@@ -57,7 +48,7 @@ public:
           for (auto &&client : ws_server.getClients()) {
             if (client.get() != &ws) {
               auto dt =
-                  fmt::format("[{} | {}]: {}", username, id, req["message"]);
+                  fmt::format("[{} | {}]: {}", req["username"], conn->getId(), req["message"]);
               client->sendBinary(dt);
             }
           }
@@ -66,7 +57,7 @@ public:
       }
       case ix::WebSocketMessageType::Close: {
         this->logged_in_count--;
-        this->serv_logger.info(fmt::format("{} has disconnected\n", username));
+        this->serv_logger.info(fmt::format("{} has disconnected\n", msg->openInfo.headers["username"]));
         this->serv_logger.info("user logged in now are " +
                                std::to_string(this->logged_in_count) +
                                " users\n");

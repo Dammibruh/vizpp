@@ -37,6 +37,7 @@ public:
   }
   void sendMessage(const std::string &msg) {
     json data;
+    data["username"] = this->username;
     data["type"] = "message";
     data["message"] = msg;
     this->conn.send(data.dump());
